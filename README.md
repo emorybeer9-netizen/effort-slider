@@ -18,7 +18,7 @@
 
 ## 是什么
 
-Hermes 的输入框里那个 `Off` / `MED` 按钮点开，会看到「思考」开关和「推理强度」的七个档位。这个插件把七个档位换成一条滑条。
+Hermes 的输入框里那个 `Off` / `Low` / `Med` 按钮点开，会看到「思考」开关和「推理强度」的七个档位。这个插件把七个档位换成一条滑条。
 
 - **七档一色**：最小是冷灰，往右依次是蓝、蓝紫、紫、亮紫、品红、珊瑚。拖到最高档时整条轨道亮起紫色星云。
 - **弹簧手感**：三种可选，都是 rAF 逐帧积分的真物理，不是 CSS transition。
@@ -80,7 +80,9 @@ git clone https://github.com/PLACEHOLDER/effort-slider \
 1. 用 `MutationObserver` 监听，在菜单弹出时找到 `[data-slot="dropdown-menu-radio-group"]`
 2. 把七个原生 `[role="menuitemradio"]` 隐藏（**保留不删** —— `aria-checked` 状态和点击事件都挂在它们身上）
 3. 在它们前面插入自绘的滑条
-4. 拖动时向对应的原生项派发 `click`，让 Radix 自己走 `onSelect`，档位因此真正写回 Hermes
+4. **松手时**向对应的原生项派发一次 `click`，让 Radix 自己走 `onSelect`，档位因此真正写回 Hermes
+
+第 4 步只发生在 `pointerup`，拖动过程中一次都不派发。这不是优化，是必须的：Hermes 每次收到 click 都会把模型按钮里的档位文字 `span` 删掉再插回去，一次拖动如果反复派发，那一拍空档会在界面上闪成一条白线。
 
 **为什么不用 SDK slot**：Hermes 目前没有暴露「替换推理强度那一行」的插件 slot。模型菜单只有 `modelMenu.row` 的 decorate 钩子，能改行图标和徽章，改不了控件本身。等上游提供 slot 后，这个插件会改成走 SDK，不再碰 DOM。
 

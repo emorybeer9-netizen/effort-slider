@@ -285,7 +285,10 @@ function labelOf(item) {
 function commit(item) {
   if (!item) return
   try {
-    item.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }))
+    // 用 item 所属文档的构造器，避免依赖全局（jsdom / 隔离环境里全局可能没有 MouseEvent）
+    const win = (item.ownerDocument && item.ownerDocument.defaultView) || window
+    const ME = (win && win.MouseEvent) || MouseEvent
+    item.dispatchEvent(new ME('click', { bubbles: true, cancelable: true, view: win }))
   } catch (e) {
     try { item.click() } catch (e2) { /* 放弃 */ }
   }
@@ -457,7 +460,10 @@ function buildSlider(items) {
     track.setAttribute('aria-valuetext', txt)
   }
 
-  const seek = (clientX, fire) => {
+  // 拖动/点击时只更新视觉与 idx，绝不派发 click。
+  // 提交统一由 pointerup 完成 —— 每次 click 都让 Hermes 重渲染模型按钮
+  // （删掉再插入档位文字 span），那一拍空档就是白条。
+  const seek = (clientX) => {
     const m = currentMotion()
     const pos = ratioAt(clientX)      // 浮点档位 0..n-1
 
@@ -470,7 +476,6 @@ function buildSlider(items) {
       if (i !== idx) {
         idx = i
         paintMeta(i)
-        if (fire) { commit(items[i]); lastCommitted = i }
       }
       return
     }
@@ -500,16 +505,11 @@ function buildSlider(items) {
       const prevIdx = idx
       idx = target
       paintMeta(target)
-      if (fire) { commit(items[target]); lastCommitted = target }
       // 目标格变了 → 弹簧带初始速度，做出"弹一下"
       targetPos = target
       const dir = target > prevIdx ? 1 : -1
       springVel = dir * (0.6 + m.tick * 1.2)
       runSpring()
-    } else if (fire && !isChecked(items[idx]) && lastCommitted !== idx) {
-      // 只在首次按到这一格时补提交，避免每个 move 都重复派发
-      commit(items[idx])
-      lastCommitted = idx
     }
   }
 
@@ -530,13 +530,17 @@ function buildSlider(items) {
     // 按下时旋钮轻微放大
     const m = currentMotion()
     knob.style.transform = `translateY(-50%) scaleX(${m.press}) scaleY(${1 + (m.press - 1) * 1.6})`
-    seek(e.clientX, true)
+    // 单击也走 pointerup 统一提交，这里不派发
+    seek(e.clientX)
   })
 
   track.addEventListener('pointermove', (e) => {
     if (!dragging) return
     swallow(e)
-    seek(e.clientX, true)
+    // 拖动过程中只走视觉 + 记录待提交档位，不派发 click。
+    // 每次 click 都会让 Hermes 重渲染模型按钮（删掉再插入档位文字 span），
+    // 那一拍空档就是用户看到的白条。提交统一放在 pointerup。
+    seek(e.clientX)
   })
 
   const release = (e) => {
@@ -548,6 +552,14 @@ function buildSlider(items) {
     // 恢复旋钮尺寸
     knob.style.transform = 'translateY(-50%)'
     const m = currentMotion()
+
+    // 拖动期间没派发过 click，这里一次性提交最终档位。
+    // 判据是「原生项当前是否已经是这一档」：没变就不提交，避免无谓重渲染。
+    if (!isChecked(items[idx])) {
+      commit(items[idx])
+      lastCommitted = idx
+    }
+
     if (m.follow) {
       // 完整模式：松手回弹到最近格
       targetPos = Math.round(springPos)
@@ -807,98 +819,6 @@ export default {
   register(ctx) {
     loadCfg(ctx)
     injectStyle()
-
-    // ── 诊断探针：把加载状态与 DOM 抓取结果写到 localStorage，
-    //    由外部脚本读取（无 CDP 时的唯一观测手段）
-    try {
-      const probe = () => {
-        // 角色清单
-        const rec = {
-          t: Date.now(),
-          sliders: document.querySelectorAll('[data-es="1"]').length,
-          radios: document.querySelectorAll('[role="menuitemradio"]').length,
-          hidden: document.querySelectorAll('.es-hidden').length,
-          hasStyleEl: !!document.getElementById(STYLE_ID),
-          menuCount: document.querySelectorAll('[role="menu"]').length,
-          hasEffort: (document.body.innerText || '').includes('推理强度'),
-          sliderVal: (document.querySelector('[data-es="1"] .es-value') || {}).textContent || null,
-          fillW: (document.querySelector('[data-es="1"] .es-fill') || {style:{}}).style.width || null,
-          geo: (() => {
-            const root = document.querySelector('[data-es="1"]')
-            if (!root) return null
-            const tr = root.querySelector('.es-track')
-            const gl = root.querySelector('.es-glow')
-            const fl = root.querySelector('.es-fill')
-            const lb = root.querySelector('.es-label')
-            const r = root.getBoundingClientRect(), t = tr.getBoundingClientRect()
-            const cs = getComputedStyle(tr), csg = getComputedStyle(root)
-            return {
-              rootH: Math.round(r.height),
-              rootTop: Math.round(r.top),
-              rootBottom: Math.round(r.bottom),
-              trH: Math.round(t.height),
-              trTop: Math.round(t.top),
-              trBottom: Math.round(t.bottom),
-              gapBelowTrack: Math.round(r.bottom - t.bottom),
-              labelH: lb ? Math.round(lb.getBoundingClientRect().height) : null,
-              trBg: cs.backgroundColor,
-              trShadow: cs.boxShadow.slice(0, 80),
-              trOverflow: cs.overflow,
-              rootPad: csg.padding,
-              rootGap: csg.gap,
-              rootBg: csg.backgroundColor,
-              rootBorder: csg.border,
-              glowH: gl ? Math.round(gl.getBoundingClientRect().height) : null,
-              fillH: fl ? Math.round(fl.getBoundingClientRect().height) : null,
-              childCount: root.children.length,
-              nextSibling: root.nextElementSibling ? (root.nextElementSibling.className || '').slice(0, 60) : null,
-              siblingH: root.nextElementSibling ? Math.round(root.nextElementSibling.getBoundingClientRect().height) : null,
-              toastLeft: document.querySelectorAll('[data-sonner-toast], [class*="toast"]').length,
-              groupBox: (() => {
-                const g = document.querySelector('[data-slot="dropdown-menu-radio-group"]')
-                if (!g) return null
-                const r = g.getBoundingClientRect()
-                const cs = getComputedStyle(g)
-                return {
-                  h: Math.round(r.height),
-                  pad: cs.padding,
-                  mar: cs.margin,
-                  bg: cs.backgroundColor,
-                  border: cs.border,
-                  cls: (g.className || '').slice(0, 90),
-                  visibleKids: Array.from(g.children).filter(c => getComputedStyle(c).display !== 'none').length,
-                  totalKids: g.children.length
-                }
-              })(),
-              parentBox: (() => {
-                const g = document.querySelector('[data-slot="dropdown-menu-radio-group"]')
-                if (!g || !g.parentElement) return null
-                const p = g.parentElement
-                const cs = getComputedStyle(p)
-                return { h: Math.round(p.getBoundingClientRect().height), pad: cs.padding, bg: cs.backgroundColor, cls: (p.className || '').slice(0, 80) }
-              })()
-            }
-          })()
-        }
-        try {
-          // 直发本地探针服务（跨域已在服务端放行）
-          fetch('http://127.0.0.1:8777/probe', {
-            method: 'POST',
-            mode: 'cors',
-            headers: { 'Content-Type': 'text/plain' },
-            body: JSON.stringify(rec)
-          }).catch(() => {})
-        } catch (e) { /* 忽略 */ }
-        try {
-          const prev = JSON.parse(localStorage.getItem('__es_probe2') || '[]')
-          const next = prev.concat(rec).slice(-12)
-          localStorage.setItem('__es_probe2', JSON.stringify(next))
-        } catch (e) { /* 忽略 */ }
-      }
-      window.__esProbe = probe
-      probe()
-      setInterval(probe, 800)
-    } catch (e) { /* 忽略 */ }
 
     try {
       mo = new MutationObserver(() => scheduleEnhance())
