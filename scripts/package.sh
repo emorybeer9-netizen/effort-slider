@@ -5,7 +5,7 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-NAME="effort-slider"
+NAME="hermes-sliding-reasoning"
 VERSION=$(grep -E '^version:' plugin.yaml | sed 's/^version: *"\(.*\)"/\1/')
 OUT="dist/${NAME}-${VERSION}.zip"
 
@@ -15,7 +15,7 @@ rm -f "$OUT"
 python - "$OUT" <<'PY'
 import sys, zipfile, os
 out = sys.argv[1]
-files = ['plugin.yaml', 'desktop/plugin.js', 'README.md', 'LICENSE']
+files = ['plugin.yaml', 'desktop/plugin.js', 'README.md', 'README.en.md', 'CHANGELOG.md', 'LICENSE']
 with zipfile.ZipFile(out, 'w', zipfile.ZIP_DEFLATED) as z:
     for f in files:
         if os.path.exists(f):

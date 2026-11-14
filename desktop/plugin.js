@@ -752,7 +752,7 @@ function Settings({ ctx, close }) {
   return jsxs('div', {
     style: { display: 'flex', flexDirection: 'column', gap: '15px', padding: '4px' },
     children: [
-      jsx('div', { style: { fontSize: '15px', fontWeight: 600 }, children: '推理滑条 Effort Slider' }),
+      jsx('div', { style: { fontSize: '15px', fontWeight: 600 }, children: 'Hermes滑动推理' }),
       jsx('div', {
         style: { fontSize: '12px', opacity: 0.65, lineHeight: 1.5 },
         children: '点开输入框里那个 Off / MED 的档案，推理强度那一组会变成一条可拖动的滑条。拖动即提交。'
@@ -814,8 +814,8 @@ function Settings({ ctx, close }) {
 
 export default {
   id: ID,
-  name: 'Effort Slider',
-  description: '把模型菜单的「推理强度」换成 Codex 风格滑条。',
+  name: 'Hermes滑动推理',
+  description: '把模型菜单的「推理强度」换成可拖动的滑条：七档一色、弹簧手感、键盘可达。',
   register(ctx) {
     loadCfg(ctx)
     injectStyle()
@@ -832,7 +832,7 @@ export default {
     ctx.register({
       id: 'page',
       area: ROUTES_AREA,
-      title: '推理滑条',
+      title: 'Hermes滑动推理',
       data: { path: ROUTE },
       render: () => jsx(Settings, { ctx })
     })
@@ -841,14 +841,14 @@ export default {
       id: 'nav',
       area: SIDEBAR_NAV_AREA,
       order: 43,
-      data: { path: ROUTE, label: '推理滑条', codicon: 'settings-gear' }
+      data: { path: ROUTE, label: 'Hermes滑动推理', codicon: 'settings-gear' }
     })
 
     ctx.register({
       id: 'cmd',
       area: PALETTE_AREA,
       data: {
-        label: '推理滑条设置',
+        label: 'Hermes滑动推理设置',
         keywords: [ID, 'effort', 'slider', 'reasoning', '推理', '强度', '滑条'],
         run: () => host.navigate(ROUTE)
       }
