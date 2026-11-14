@@ -29,7 +29,7 @@ Hermes 的输入框里那个 `Off` / `Low` / `Med` 按钮点开，会看到「�
 
 ```bash
 # 方式一：直接克隆到桌面插件目录
-git clone https://github.com/PLACEHOLDER/effort-slider \
+git clone https://github.com/emorybeer9-netizen/effort-slider \
   "$HOME/.hermes/desktop-plugins/effort-slider"
 
 # Windows 默认路径是
