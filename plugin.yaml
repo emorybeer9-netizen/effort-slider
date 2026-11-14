@@ -1,0 +1,11 @@
+name: effort-slider
+version: "1.0.0"
+description: "把模型菜单里的「推理强度」单选项换成 Codex 风格的可拖动滑条：七档一色、弹簧手感、键盘可达。"
+author: cioo
+license: MIT
+homepage: https://github.com/PLACEHOLDER/effort-slider
+requires_hermes: ">=0.23.0"
+capabilities:
+  - desktop
+desktop:
+  entry: desktop/plugin.js
