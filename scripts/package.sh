@@ -15,7 +15,7 @@ rm -f "$OUT"
 python - "$OUT" <<'PY'
 import sys, zipfile, os
 out = sys.argv[1]
-files = ['plugin.yaml', 'desktop/plugin.js', 'README.md', 'README.en.md', 'CHANGELOG.md', 'LICENSE']
+files = ['plugin.yaml', 'desktop/plugin.js', 'README.md', 'README.en.md', 'CHANGELOG.md', 'LICENSE', 'docs/preview.png']
 with zipfile.ZipFile(out, 'w', zipfile.ZIP_DEFLATED) as z:
     for f in files:
         if os.path.exists(f):
