@@ -1,6 +1,6 @@
 name: hermes-sliding-reasoning
-version: "1.0.0"
-description: "Hermes滑动推理 —— 把模型菜单里的「推理强度」单选项换成可拖动的滑条：七档一色、弹簧手感、键盘可达。"
+version: "2.0.0"
+description: "Hermes滑动推理 v2 —— 模型菜单里的推理强度变成可拖滑条：档位英文、模型名居中、思考等级在上、星尘随档位加速、圆形滑头与 Ultra 半圆轨道严丝合缝。"
 author: cioo
 license: MIT
 homepage: https://github.com/emorybeer9-netizen/effort-slider

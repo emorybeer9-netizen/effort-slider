@@ -31,6 +31,8 @@ const DEFAULTS = {
   glow: true,
   snap: true,
   showDots: true,
+  // 填充区里的星星粒子（从滑动头飘落到尾部）
+  stars: true,
   // 拖动手感：'fast' (复刻 Codex) | 'clean' (简洁) | 'full' (最跟手)
   motion: 'fast'
 }
@@ -65,7 +67,9 @@ let mo = null
 let raf = 0
 
 // 档位顺序（按 Hermes 的七个中文档位）+ Codex 风格配色
+// 中文 LEVELS 用于识别原生菜单项；显示层用 LEVEL_EN（Codex 风格英文）。
 const LEVELS = ['最小', '低', '中', '高', '极高', '最高', '超高']
+const LEVEL_EN = ['Minimal', 'Low', 'Medium', 'High', 'XHigh', 'Max', 'Ultra']
 const HUES = {
   '最小': ['#64748b', '#94a3b8'],
   '低': ['#3b82f6', '#60a5fa'],
@@ -96,6 +100,9 @@ function saveCfg(ctx) {
 function buildCss() {
   if (!cfg.enabled) return `/* effort-slider: off */`
   return `
+/* 隐藏原生「推理强度」label —— 插件自绘思考等级 + 模型名 */
+.es-native-label-hidden { display: none !important; }
+
 /* ── effort-slider ──────────────────────────────────────────── */
 .${ROOT} {
   display: flex;
@@ -107,15 +114,48 @@ function buildCss() {
 }
 .${ROOT} .es-label {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-size: 10px;
+  flex-direction: column;
+  align-items: stretch;
+  position: relative;
+  font-size: 11px;
   letter-spacing: .05em;
   text-transform: uppercase;
-  opacity: .60;
+  opacity: .78;
+}
+/* 当前思考等级（High / Max / Ultra…）—— 模型名上方，居中高亮 */
+.${ROOT} .es-level {
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  letter-spacing: .06em !important;
+  text-transform: none !important;
+  text-align: center;
+  opacity: 1;
+  margin-bottom: 1px;
+}
+/* 模型名 —— 居中显示 */
+.${ROOT} .es-model-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  position: relative;
+  min-height: 15px;
+}
+.${ROOT} .es-label .es-model-name {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: 62%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 600;
+  font-size: 13px;
+  opacity: 1;
 }
 .${ROOT} .es-value {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   letter-spacing: 0;
   text-transform: none;
@@ -143,6 +183,7 @@ function buildCss() {
   position: absolute;
   inset: 0 auto 0 0;
   border-radius: 7px 0 0 7px;
+  overflow: hidden;
   /* 位置由 rAF 弹簧逐帧写入，这里只过渡颜色 */
   transition: background .2s;
   pointer-events: none;
@@ -151,14 +192,15 @@ function buildCss() {
 .${ROOT} .es-knob {
   position: absolute;
   top: 50%;
-  width: 4px;
-  height: 16px;
-  margin-left: -2px;
-  border-radius: 2px;
+  width: 24px;
+  height: 24px;
+  margin-left: -12px;
+  border-radius: 50%;
   transform: translateY(-50%);
   background: #fff;
-  box-shadow: 0 0 0 1px rgba(0,0,0,.30), 0 1px 3px rgba(0,0,0,.45);
+  box-shadow: 0 0 0 1px rgba(0,0,0,.30), 0 1px 4px rgba(0,0,0,.45), 0 0 10px rgba(255,255,255,.25);
   pointer-events: none;
+  z-index: 3;
   /* 位置由弹簧写入；transform 变化（按下放大）走短过渡 */
   transition: transform .09s cubic-bezier(.3,.8,.4,1), box-shadow .12s;
   will-change: left, transform;
@@ -167,6 +209,35 @@ function buildCss() {
 .${ROOT}[data-dragging="1"] .es-knob {
   box-shadow: 0 0 0 1px rgba(0,0,0,.32), 0 2px 7px rgba(0,0,0,.5), 0 0 10px rgba(255,255,255,.35);
 }
+/* 填充区内的星星：沿固定水平线从滑动头（右）飘到尾部（左），只旋转闪烁不换轨道 */
+@keyframes es-star-fall {
+  0%   { left: 100%; opacity: 0;   transform: scale(.3) rotate(0deg); }
+  10%  { opacity: .95; }
+  25%  { transform: scale(1) rotate(var(--r1, 70deg)); }
+  45%  { transform: scale(.8) rotate(var(--r2, 150deg)); }
+  65%  { transform: scale(1.1) rotate(var(--r3, 240deg)); }
+  82%  { opacity: .8; }
+  100% { left: -6%; opacity: 0;   transform: scale(.5) rotate(var(--r4, 330deg)); }
+}
+.${ROOT} .es-stars {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+.${ROOT} .es-star {
+  position: absolute;
+  top: 50%;
+  font-size: 7px;
+  line-height: 1;
+  transform-origin: center center;
+  color: #fff;
+  text-shadow: 0 0 5px rgba(255,255,255,.9), 0 0 9px rgba(255,255,255,.5);
+  animation: es-star-fall calc(var(--dur, 2.2s) * var(--star-speed, 1)) linear infinite;
+  animation-delay: var(--delay, 0s);
+  will-change: transform, opacity;
+}
+
 .${ROOT} .es-dots { position: absolute; inset: 0; pointer-events: none; }
 .${ROOT} .es-dot {
   position: absolute;
@@ -195,6 +266,10 @@ function buildCss() {
 }
 .${ROOT} .es-track[data-max="1"] {
   box-shadow: inset 0 0 0 1px rgba(168,85,247,.6), 0 0 12px rgba(168,85,247,.38);
+}
+/* Ultra 档轨道右端收成半圆（半径=滑动头半径），滑动头彻底盖住末端不漏边 */
+.${ROOT} .es-track[data-ultra="1"] {
+  border-radius: 7px 12px 12px 7px;
 }
 .${ROOT} .es-glow {
   position: absolute; inset: 0;
@@ -263,6 +338,21 @@ function findGroups() {
   return out
 }
 
+/**
+ * 当前模型的显示名。host.state.model 是 slug（hy4flash-free）；
+ * 也尝试从菜单里的模型名反查，优先用真实显示名，退而求其次才 slug 转写。
+ */
+function currentModelName() {
+  let slug = ''
+  try { slug = String(host?.state?.model?.get?.() || '').trim() } catch (e) { /* 忽略 */ }
+  if (!slug) return ''
+  return slug
+    .replace(/^[^:]+:/, '')      // 去 provider 前缀
+    .replace(/[-_]+/g, ' ')
+    .replace(/\b\w/g, c => c.toUpperCase())  // hy4flash → Hy4flash
+    .trim()
+}
+
 function valOf(item) {
   // Hermes 的 radio item 不带 value，用文字归一
   const t = (item.textContent || '').replace(/\s*[（(].*?[）)]\s*$/, '').trim()
@@ -301,20 +391,53 @@ function buildSlider(items) {
 
   const label = document.createElement('div')
   label.className = 'es-label'
-  const lSpan = document.createElement('span')
-  lSpan.textContent = '推理强度'
+  // 当前思考等级（Minimal / High / Max / Ultra…）放在模型名上方
   const vSpan = document.createElement('span')
-  vSpan.className = 'es-value'
-  label.append(lSpan, vSpan)
+  vSpan.className = 'es-value es-level'
+  // 模型名行（居中）
+  const row = document.createElement('div')
+  row.className = 'es-model-row'
+  const lSpan = document.createElement('span')
+  lSpan.className = 'es-model-name'
+  lSpan.textContent = currentModelName() || 'Model'
+  lSpan.setAttribute('data-es-model-name', '1')
+  row.append(lSpan)
+  label.append(vSpan, row)
 
   const track = document.createElement('div')
   track.className = 'es-track'
   track.setAttribute('role', 'slider')
-  track.setAttribute('aria-label', '推理强度')
+  track.setAttribute('aria-label', 'Reasoning effort')
   track.tabIndex = 0
 
   const fill = document.createElement('div')
   fill.className = 'es-fill'
+  let starsEl = null
+  if (cfg.stars) {
+    const stars = document.createElement('div')
+    stars.className = 'es-stars'
+    starsEl = stars
+    // 星星从滑动头（fill 右端）向左飘；数量每次随机（5~7 颗，不过多不过少）
+    // 纵向铺满上/中/下；只随机旋转角度，飘动时沿固定水平轨道。
+    const pool = ['✦', '✧', '★']
+    const count = 5 + Math.floor(Math.random() * 3)   // 5~7，期望 6，不过多不过少
+    const bands = [12, 50, 86, 30, 70, 44, 76]        // 前三颗锁定上/中/下
+    for (let i = 0; i < count; i++) {
+      const s = document.createElement('span')
+      s.className = 'es-star'
+      s.textContent = pool[i % pool.length]
+      s.style.setProperty('--dur', `${(1.8 + Math.random() * 1.1).toFixed(2)}s`)
+      s.style.setProperty('--delay', `${(-Math.random() * 2.4).toFixed(2)}s`)
+      s.style.top = `${bands[i] + (Math.random() * 10 - 5)}%`
+      s.style.fontSize = `${6 + Math.floor(Math.random() * 3)}px`
+      const rnd = (a, b) => `${(Math.random() * (b - a) + a).toFixed(0)}`
+      for (let k = 1; k <= 4; k++) {
+        s.style.setProperty(`--r${k}`, `${rnd(40 * k - 30, 40 * k + 30)}deg`)
+      }
+      stars.appendChild(s)
+    }
+    fill.appendChild(stars)
+  }
   const dots = document.createElement('div')
   dots.className = 'es-dots'
   const glow = document.createElement('div')
@@ -345,14 +468,24 @@ function buildSlider(items) {
     }
   }
 
+  // 圆心内缩一个半径，保证两端档位（尤其 Ultra 最高档）圆形完整不被裁切
+  const knobLeft = (pct) => `calc(12px + (100% - 24px) * ${(pct / 100).toFixed(4)})`
+
   const paint = (i) => {
     i = Math.max(0, Math.min(n - 1, i))
     idx = i
     const pct = i * stepPct
     fill.style.width = `${pct}%`
-    knob.style.left = `${pct}%`
+    knob.style.left = knobLeft(pct)
+    // 星星速度与频率绑定思考等级：等级越高倍率越小 → 周期越短 → 飘得越快、出现越频繁
+    if (starsEl) {
+      const speed = n > 1 ? 1.25 - (i / (n - 1)) * 0.85 : 1   // 1.25(最低档) → 0.40(最高档)，整体更快
+      starsEl.style.setProperty('--star-speed', speed.toFixed(2))
+    }
     const key = valOf(items[i])
-    const txt = labelOf(items[i]) || key
+    // 档位显示英文；中文 LEVELS 只用于识别原生菜单项，两者分离
+    const li = LEVELS.indexOf(key)
+    const txt = li >= 0 ? LEVEL_EN[li] : (labelOf(items[i]) || key)
     vSpan.textContent = txt
     if (cfg.colorize) {
       const h = HUES[key] || HUES.high
@@ -365,6 +498,7 @@ function buildSlider(items) {
     const isMax = i === n - 1
     fill.setAttribute('data-max', isMax && cfg.glow ? '1' : '0')
     track.setAttribute('data-max', isMax && cfg.glow ? '1' : '0')
+    track.setAttribute('data-ultra', isMax ? '1' : '0')
     if (cfg.showDots) {
       Array.from(dots.children).forEach((d, k) => d.setAttribute('data-on', k <= i ? '1' : '0'))
     }
@@ -389,7 +523,7 @@ function buildSlider(items) {
   const applyVisual = (p) => {
     const pct = Math.max(0, Math.min(100, (p / Math.max(1, n - 1)) * 100))
     fill.style.width = `${pct}%`
-    knob.style.left = `${pct}%`
+    knob.style.left = knobLeft(pct)
   }
 
   const currentMotion = () => MOTION[cfg.motion] || MOTION.fast
@@ -439,8 +573,14 @@ function buildSlider(items) {
 
   // 只更新档位元信息（文字/颜色/点），不动位置——位置交给弹簧
   const paintMeta = (i) => {
+    if (starsEl) {
+      const speed = n > 1 ? 1.25 - (i / (n - 1)) * 0.85 : 1
+      starsEl.style.setProperty('--star-speed', speed.toFixed(2))
+    }
     const key = valOf(items[i])
-    const txt = labelOf(items[i]) || key
+    // 档位显示英文；中文 LEVELS 只用于识别原生菜单项，两者分离
+    const li = LEVELS.indexOf(key)
+    const txt = li >= 0 ? LEVEL_EN[li] : (labelOf(items[i]) || key)
     vSpan.textContent = txt
     if (cfg.colorize) {
       const h = HUES[key] || HUES.high
@@ -453,6 +593,7 @@ function buildSlider(items) {
     const isMax = i === n - 1
     fill.setAttribute('data-max', isMax && cfg.glow ? '1' : '0')
     track.setAttribute('data-max', isMax && cfg.glow ? '1' : '0')
+    track.setAttribute('data-ultra', isMax ? '1' : '0')
     if (cfg.showDots) {
       Array.from(dots.children).forEach((d, k) => d.setAttribute('data-on', k <= i ? '1' : '0'))
     }
@@ -527,9 +668,8 @@ function buildSlider(items) {
     wrap.setAttribute('data-dragging', '1')
     try { track.setPointerCapture(e.pointerId) } catch (err) { /* 忽略 */ }
     swallow(e)
-    // 按下时旋钮轻微放大
-    const m = currentMotion()
-    knob.style.transform = `translateY(-50%) scaleX(${m.press}) scaleY(${1 + (m.press - 1) * 1.6})`
+    // 拖动时保持圆形原尺寸，不做放大
+    knob.style.transform = 'translateY(-50%)'
     // 单击也走 pointerup 统一提交，这里不派发
     seek(e.clientX)
   })
@@ -628,6 +768,20 @@ function buildSlider(items) {
   return wrap
 }
 
+// 隐藏原生「推理强度」label（插件自绘思考等级 + 模型名替代它）
+function hideNativeLabel(parent) {
+  const host = parent?.parentElement
+  if (!host) return
+  for (const el of Array.from(host.querySelectorAll('*'))) {
+    if (el.querySelector('[role="menuitemradio"]')) continue
+    const t = (el.textContent || '').trim()
+    if (t === '推理强度' && el.children.length === 0) {
+      el.classList.add('es-native-label-hidden')
+      return
+    }
+  }
+}
+
 function enhance() {
   if (!cfg.enabled) return
   for (const { parent, items } of findGroups()) {
@@ -639,6 +793,7 @@ function enhance() {
 
     const slider = buildSlider(items)
     parent.dataset.esDone = '1'
+    hideNativeLabel(parent)
     // 只隐藏 item，容器本身不参与布局（否则它的 padding 会留下一条白边）
     items.forEach(it => it.classList.add('es-hidden'))
     // 插在 group 前面当兄弟，不塞进 group 内部
@@ -658,6 +813,7 @@ function restore() {
     n.style.removeProperty('display')
   })
   document.querySelectorAll('.es-hidden').forEach(n => n.classList.remove('es-hidden'))
+  document.querySelectorAll('.es-native-label-hidden').forEach(n => n.classList.remove('es-native-label-hidden'))
 }
 
 function scheduleEnhance() {
@@ -755,7 +911,7 @@ function Settings({ ctx, close }) {
       jsx('div', { style: { fontSize: '15px', fontWeight: 600 }, children: 'Hermes滑动推理' }),
       jsx('div', {
         style: { fontSize: '12px', opacity: 0.65, lineHeight: 1.5 },
-        children: '点开输入框里那个 Off / MED 的档案，推理强度那一组会变成一条可拖动的滑条。拖动即提交。'
+        children: '点开输入框里那个 Off / MED 的档案，推理强度那一组会变成一条可拖动的滑条：上方是当前思考等级（Minimal→Ultra），中间是当前模型名，拖动即提交。'
       }),
 
       jsxs('div', { style: { display: 'flex', alignItems: 'center', gap: '8px' },
@@ -766,6 +922,8 @@ function Settings({ ctx, close }) {
         children: [toggle('glow'), row('最高档星云', '流光 + 扫光 + 外发光')] }),
       jsxs('div', { style: { display: 'flex', alignItems: 'center', gap: '8px' },
         children: [toggle('showDots'), row('刻度点', '已到达的点亮白')] }),
+      jsxs('div', { style: { display: 'flex', alignItems: 'center', gap: '8px' },
+        children: [toggle('stars'), row('星星飘落', '填充区内从滑动头飘向尾部')] }),
 
       // ── 拖动手感 ──
       jsxs('div', {
@@ -829,6 +987,17 @@ export default {
     // 静音那条原生「将从你的下一条消息开始生效」toast
     try { startToastGuard() } catch (e) { /* 忽略 */ }
 
+    // 切模型只改 atom 未必动 DOM，低频兜底刷新滑条居中的模型名
+    const labelTimer = setInterval(() => {
+      try {
+        const name = currentModelName()
+        if (!name) return
+        document.querySelectorAll(`.${ROOT} [data-es-model-name="1"]`).forEach(n => {
+          if (n.textContent !== name) n.textContent = name
+        })
+      } catch (e) { /* 忽略 */ }
+    }, 2000)
+
     ctx.register({
       id: 'page',
       area: ROUTES_AREA,
@@ -857,6 +1026,7 @@ export default {
     ctx.onDispose(() => {
       if (mo) mo.disconnect()
       if (raf) cancelAnimationFrame(raf)
+      clearInterval(labelTimer)
       try { stopToastGuard() } catch (e) { /* 忽略 */ }
       restore()
       removeStyle()

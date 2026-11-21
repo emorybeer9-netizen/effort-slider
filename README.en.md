@@ -4,11 +4,11 @@
 
 **Turn Hermes's reasoning-effort picker from a list of radio buttons into a slider you can drag.**
 
-Seven tiers, seven colors · Spring physics · Keyboard accessible · Applies on release
+Seven English tiers · model name centered · stardust accelerates with tier · Spring physics · Keyboard accessible
 
 [![Hermes Desktop](https://img.shields.io/badge/Hermes%20Desktop-%E2%89%A50.23.0-8b5cf6?style=flat-square)](https://github.com/NousResearch/hermes-agent)
 [![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square)](LICENSE)
-[![Version](https://img.shields.io/badge/version-1.0.0-e879f9?style=flat-square)](https://github.com/emorybeer9-netizen/effort-slider/releases)
+[![Version](https://img.shields.io/badge/version-2.0.0-e879f9?style=flat-square)](https://github.com/emorybeer9-netizen/effort-slider/releases)
 
 English · [简体中文](README.md)
 
@@ -28,15 +28,21 @@ Natively it's a column of radio buttons — to change tiers you open the menu, f
 
 It isn't cosmetic. Whichever tier you land on is written back into Hermes and used for your next message.
 
+> **New in v2**: the slider now shows the current reasoning tier (English labels) and the current model name right above it — no menu-opening needed. Stardust particles drift through the filled track, accelerating with the tier. The knob is a true circle, and at Ultra the track end curves into a matching half-circle so nothing leaks.
+
 ## What you get
 
 | | |
 |---|---|
-| **Seven tiers, seven colors** | Cool gray at Minimum, then blue, indigo, purple, violet, magenta, coral. At the top tier the whole track lights up with a purple nebula and a light sweep glides across |
-| **Spring physics** | Three modes, each a real per-frame spring integration via rAF — not a CSS transition. Release and the knob snaps onto a tier with a small bounce |
-| **Dead zone** | Park the pointer between two tiers and jitter all you like — it won't oscillate. This took the longest to get right; see below |
+| **7 English tiers** | Minimal / Low / Medium / High / XHigh / Max / Ultra (Codex style) |
+| **At-a-glance info** | Current reasoning tier and model name centered above the slider, following model switches |
+| **Stardust** | 5–7 random particles drift from knob to tail along fixed horizontal lanes; faster and denser at higher tiers |
+| **Round knob** | 24px circle, never deforms while dragging; at Ultra the track end becomes a matching half-circle |
+| **Seven colors** | Cool gray at Minimum, then blue, indigo, purple, violet, magenta, coral. At the top tier the whole track lights up with a purple nebula and a light sweep |
+| **Spring physics** | Three modes, each a real per-frame spring integration via rAF — not a CSS transition |
+| **Dead zone** | Park the pointer between two tiers and jitter all you like — it won't oscillate |
 | **Keyboard accessible** | Arrow keys step one tier, `Home` jumps to Minimal, `End` to Ultra |
-| **Applies for real** | One commit on release, written back into Hermes — not a visual toy |
+| **Applies for real** | One commit on release, written back into Hermes |
 
 ## Install
 
@@ -81,6 +87,7 @@ Now both directions use the same threshold, so the dead zone is always ≥ 1 tie
 | Per-tier colors | Off = every tier uses the same color |
 | Top-tier nebula | Flowing gradient + light sweep + outer glow |
 | Tick dots | Reached tiers light up white |
+| Stardust | Particles in the fill; faster and denser at higher tiers; off = static |
 | Gloss color | Empty follows the theme; or set `#ffffff`, `oklch(...)` |
 | Flow intensity | Opacity of the track gradient |
 

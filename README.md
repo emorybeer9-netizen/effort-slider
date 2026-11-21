@@ -4,11 +4,11 @@
 
 **把 Hermes 的推理强度从「一列单选项」变成一条能拖的滑条。**
 
-七档一色 · 弹簧手感 · 键盘可达 · 拖动即生效
+七档英文 · 模型名居中 · 星尘随档位加速 · 弹簧手感 · 键盘可达
 
 [![Hermes Desktop](https://img.shields.io/badge/Hermes%20Desktop-%E2%89%A50.23.0-8b5cf6?style=flat-square)](https://github.com/NousResearch/hermes-agent)
 [![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square)](LICENSE)
-[![Version](https://img.shields.io/badge/version-1.0.0-e879f9?style=flat-square)](https://github.com/emorybeer9-netizen/effort-slider/releases)
+[![Version](https://img.shields.io/badge/version-2.0.0-e879f9?style=flat-square)](https://github.com/emorybeer9-netizen/effort-slider/releases)
 
 [English](README.en.md) · 简体中文
 
@@ -28,14 +28,20 @@ Hermes 输入框右下角那个 `Off` / `Low` / `Med` 按钮，点开是「思�
 
 不是只改外观。拖到哪一档，档位就真的写回 Hermes，下一条消息就按那个强度跑。
 
+> **v2 新增**：滑条上方直接显示当前思考等级（英文档位）和当前模型名，不用再点开菜单猜。填充区里有随档位加速的星尘——等级越高，星星飘得越快越密。滑动头是正圆，Ultra 档轨道末端收成半圆跟它严丝合缝。
+
 ## 效果
 
 | | |
 |---|---|
-| **七档一色** | 最小是冷灰，往右依次蓝、蓝紫、紫、亮紫、品红、珊瑚。拖到最高档时整条轨道亮起紫色星云，还有一道扫光掠过去 |
-| **弹簧手感** | 三种可选，都是 rAF 逐帧积分的真物理，不是 CSS transition。松手会「弹」一下落到格上 |
-| **死区防抖** | 指针停在两档之间来回抖动也不会疯狂切档。这是调得最久的地方，见下文 |
-| **键盘可达** | 方向键逐档、`Home` 到最小、`End` 到超高 |
+| **7 档英文** | Minimal / Low / Medium / High / XHigh / Max / Ultra（Codex 风格） |
+| **信息直读** | 上方居中显示当前思考等级与模型名，切模型自动跟随，不用点开菜单 |
+| **星尘动效** | 填充区内 5~7 颗随机星星，沿固定轨道从滑头飘向尾部；等级越高越快越密，上中下三路分布 |
+| **圆形滑头** | 24px 正圆，拖动手感全程不变形；Ultra 档轨道收半圆，圆与轨道末端严丝合缝 |
+| **七档一色** | 最小是冷灰，往右依次蓝、蓝紫、紫、亮紫、品红、珊瑚。拖到最高档整条轨道亮起紫色星云 + 扫光 |
+| **弹簧手感** | 三种可选，rAF 逐帧积分的真物理，不是 CSS transition。松手会「弹」一下落到格上 |
+| **死区防抖** | 指针停在两档之间抖动也不会疯狂切档，见下文 |
+| **键盘可达** | 方向键逐档、`Home` 到最小、`End` 到 Ultra |
 | **拖动即生效** | 松手提交一次，档位真实写回，不是视觉玩具 |
 
 ## 安装
@@ -81,6 +87,7 @@ Windows 的路径是：
 | 一档一色 | 关闭后所有档位用同一色 |
 | 最高档星云 | 流光 + 扫光 + 外发光 |
 | 刻度点 | 已到达的档位点亮白 |
+| 星星飘落 | 填充区内的星尘，等级越高越快越密；关掉即静态 |
 | 光泽颜色 | 留空跟随主题，也可填 `#ffffff` 或 `oklch(...)` |
 | 流动浓度 | 轨道渐变的不透明度 |
 
